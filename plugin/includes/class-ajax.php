@@ -130,6 +130,11 @@ class IMS_Ajax {
         // The stock form sends opening_packs[product] and used_packs[product] arrays
         $opening_values = isset($_POST['opening_packs']) && is_array($_POST['opening_packs']) ? $_POST['opening_packs'] : array();
         $used_values    = isset($_POST['used_packs']) && is_array($_POST['used_packs']) ? $_POST['used_packs'] : array();
+        $remarks_raw    = isset($_POST['remarks']) ? $_POST['remarks'] : '';
+        $remarks_text   = is_string($remarks_raw) ? sanitize_textarea_field($remarks_raw) : '';
+        if (function_exists('ims_normalize_remarks')) {
+            $remarks_text = ims_normalize_remarks($remarks_text);
+        }
         
         // Process: admin → all products; staff → only submitted ones
         $products = $is_admin ? ims_get_products('all') : array_keys($used_values);
@@ -174,6 +179,7 @@ class IMS_Ajax {
                 'opening_packs'     => $opening_packs,
                 'used_packs'        => $used_packs,
                 'closing_packs'     => $closing_packs,
+                'remarks'           => $remarks_text,
                 'staff_name'        => $current_user->display_name,
                 'timestamp_created' => $lagos_time
             );
@@ -222,12 +228,22 @@ class IMS_Ajax {
         $is_staff      = ims_is_staff_user();
         $eps           = 1e-6;
         
-        // The chopped form sends opening_whole[fruit], prepared_whole[fruit], packs_gotten[fruit], remarks (scalar)
+        // The chopped form sends opening_whole[fruit], prepared_whole[fruit], packs_gotten[fruit], remarks (scalar or per-fruit array)
         $opening_values  = isset($_POST['opening_whole']) && is_array($_POST['opening_whole']) ? $_POST['opening_whole'] : array();
         $prepared_values = isset($_POST['prepared_whole']) && is_array($_POST['prepared_whole']) ? $_POST['prepared_whole'] : array();
         $packs_values    = isset($_POST['packs_gotten']) && is_array($_POST['packs_gotten']) ? $_POST['packs_gotten'] : array();
         $remarks_raw     = isset($_POST['remarks']) ? $_POST['remarks'] : '';
-        $remarks_values  = is_array($remarks_raw) ? $remarks_raw : array();
+        // Support both per-fruit array and scalar remarks
+        if (is_array($remarks_raw)) {
+            $remarks_values = $remarks_raw;
+            $remarks_scalar = '';
+        } else {
+            $remarks_values = array();
+            $remarks_scalar = sanitize_textarea_field($remarks_raw);
+            if (function_exists('ims_normalize_remarks')) {
+                $remarks_scalar = ims_normalize_remarks($remarks_scalar);
+            }
+        }
         
         $fruits = $is_admin ? ims_get_products('chopped') : array_keys(array_merge(
             is_array($prepared_values) ? $prepared_values : array(),
@@ -273,8 +289,14 @@ class IMS_Ajax {
             $final_packs = isset($packs_values[$fruit]) ? max(0.0, floatval($packs_values[$fruit])) : ($existing ? floatval($existing->packs_gotten) : 0.0);
             $base_packs  = $existing ? floatval($existing->packs_gotten) : 0.0;
             
-            // Remarks
-            $final_remarks = isset($remarks_values[$fruit]) ? sanitize_textarea_field($remarks_values[$fruit]) : ($existing ? $existing->remarks : '');
+            // Remarks: use per-fruit array if available, else scalar, else existing DB value
+            if (isset($remarks_values[$fruit])) {
+                $final_remarks = sanitize_textarea_field($remarks_values[$fruit]);
+            } elseif ($remarks_scalar !== '') {
+                $final_remarks = $remarks_scalar;
+            } else {
+                $final_remarks = $existing ? $existing->remarks : '';
+            }
             if (function_exists('ims_normalize_remarks')) {
                 $final_remarks = ims_normalize_remarks($final_remarks);
             }

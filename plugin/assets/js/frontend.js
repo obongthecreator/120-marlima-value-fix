@@ -209,10 +209,23 @@
             });
         },
 
-        // Validate import form — checks quantity[] inputs in the table
+        // Validate import form — checks both scalar and array quantity inputs
         validateImportForm: function(form) {
             var hasQuantity = false;
-            
+
+            // Check scalar quantity field (single-product import form)
+            var scalarQty = form.find('input[name="quantity"]');
+            if (scalarQty.length) {
+                var val = parseFloat(scalarQty.val());
+                if (val > 0) {
+                    hasQuantity = true;
+                }
+                if (val < 0) {
+                    scalarQty.addClass('error');
+                }
+            }
+
+            // Also check array-style quantity[] fields (batch import form)
             form.find('input[name^="quantity["]').each(function() {
                 var val = parseFloat($(this).val());
                 if (val > 0) {
@@ -222,9 +235,17 @@
                     $(this).addClass('error');
                 }
             });
-            
+
+            // For the single-product form, also check that a product is selected
+            var productSelect = form.find('select[name="product"]');
+            if (productSelect.length && !productSelect.val()) {
+                alert('Please select a product.');
+                productSelect.addClass('error');
+                return false;
+            }
+
             if (!hasQuantity) {
-                alert('Please enter at least one product quantity greater than 0.');
+                alert('Please enter a quantity greater than 0.');
                 return false;
             }
             

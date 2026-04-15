@@ -162,6 +162,16 @@ class IMS_Frontend {
         $today = date('Y-m-d', strtotime($lagos_time));
         $is_admin = current_user_can('manage_options');
         
+        // Get existing remarks from today's stock data (shared across all products)
+        $existing_remarks = '';
+        $remarks_row = $wpdb->get_var($wpdb->prepare(
+            "SELECT remarks FROM {$wpdb->prefix}ims_stock WHERE DATE(date_created) = %s AND remarks IS NOT NULL AND remarks != '' ORDER BY id DESC LIMIT 1",
+            $today
+        ));
+        if ($remarks_row) {
+            $existing_remarks = $remarks_row;
+        }
+        
         // Get today's stock data for each product
         $stock_data = array();
         foreach ($products as $product) {
@@ -273,7 +283,7 @@ class IMS_Frontend {
                 
                 <div class="ims-form-group">
                     <label for="ims-stock-remarks">Remarks</label>
-                    <textarea id="ims-stock-remarks" name="remarks" rows="3"></textarea>
+                    <textarea id="ims-stock-remarks" name="remarks" rows="3"><?php echo esc_textarea($existing_remarks); ?></textarea>
                 </div>
                 
                 <div class="ims-form-actions">
@@ -293,6 +303,16 @@ class IMS_Frontend {
         $lagos_time = ims_get_lagos_time();
         $today = date('Y-m-d', strtotime($lagos_time));
         $is_admin = current_user_can('manage_options');
+        
+        // Get existing remarks from today's chopped data (shared across all fruits)
+        $existing_chopped_remarks = '';
+        $chopped_remarks_row = $wpdb->get_var($wpdb->prepare(
+            "SELECT remarks FROM {$wpdb->prefix}ims_chopped WHERE DATE(date_created) = %s AND remarks IS NOT NULL AND remarks != '' ORDER BY id DESC LIMIT 1",
+            $today
+        ));
+        if ($chopped_remarks_row) {
+            $existing_chopped_remarks = $chopped_remarks_row;
+        }
         
         // Get today's chopped data for each fruit
         $chopped_data = array();
@@ -415,7 +435,7 @@ class IMS_Frontend {
                 
                 <div class="ims-form-group">
                     <label for="ims-chopped-remarks">Remarks</label>
-                    <textarea id="ims-chopped-remarks" name="remarks" rows="3"></textarea>
+                    <textarea id="ims-chopped-remarks" name="remarks" rows="3"><?php echo esc_textarea($existing_chopped_remarks); ?></textarea>
                 </div>
                 
                 <div class="ims-form-actions">
