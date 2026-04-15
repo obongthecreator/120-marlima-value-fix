@@ -126,7 +126,7 @@ class IMS_Database {
         $chopped_products = ims_get_products('chopped');
         
         foreach ($all_products as $index => $product) {
-            $type = in_array($product, $chopped_products) ? 'all' : 'all';
+            $type = in_array($product, $chopped_products) ? 'chopped' : 'all';
             
             $wpdb->insert(
                 $table_products,

@@ -37,10 +37,19 @@ class IMS_Ajax {
             wp_send_json_error('User not authorized');
         }
         
-        // The import form sends quantity[product] = value for each product
-        $quantities = isset($_POST['quantity']) && is_array($_POST['quantity']) ? $_POST['quantity'] : array();
+        // The import form sends a single product + quantity pair
+        // Build the quantities array from either format (single or batch)
+        if (isset($_POST['quantity']) && is_array($_POST['quantity'])) {
+            $quantities = $_POST['quantity'];
+        } elseif (isset($_POST['product']) && isset($_POST['quantity']) && !is_array($_POST['quantity'])) {
+            $product_name = sanitize_text_field($_POST['product']);
+            $qty_val = floatval($_POST['quantity']);
+            $quantities = ($product_name !== '' && $qty_val > 0) ? array($product_name => $qty_val) : array();
+        } else {
+            $quantities = array();
+        }
         
-        if (empty($quantities) || !is_array($quantities)) {
+        if (empty($quantities)) {
             wp_send_json_error('No import data submitted');
         }
         

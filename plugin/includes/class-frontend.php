@@ -181,7 +181,7 @@ class IMS_Frontend {
                     'opening_packs' => $previous_data ? floatval($previous_data->closing_packs) : 0,
                     'added_packs' => IMS_Database::get_today_import_value($product),
                     'used_packs' => 0,
-                    'closing_packs' => 0,
+                    'closing_packs' => ($previous_data ? floatval($previous_data->closing_packs) : 0) + IMS_Database::get_today_import_value($product),
                     'remarks' => ''
                 );
             }
@@ -237,7 +237,7 @@ class IMS_Frontend {
                                                step="0.01" 
                                                min="0" 
                                                class="opening-packs"
-                                               readonly>
+                                               <?php echo $is_admin ? '' : 'readonly'; ?>>
                                     </td>
                                     <td>
                                         <input type="number" 
@@ -313,7 +313,7 @@ class IMS_Frontend {
                     'opening_whole' => $previous_data ? floatval($previous_data->closing_whole) : 0,
                     'import_whole' => IMS_Database::get_today_import_value($fruit),
                     'prepared_whole' => 0,
-                    'closing_whole' => 0,
+                    'closing_whole' => ($previous_data ? floatval($previous_data->closing_whole) : 0) + IMS_Database::get_today_import_value($fruit),
                     'packs_gotten' => 0,
                     'remarks' => ''
                 );
@@ -371,7 +371,7 @@ class IMS_Frontend {
                                                step="0.01" 
                                                min="0" 
                                                class="opening-whole"
-                                               readonly>
+                                               <?php echo $is_admin ? '' : 'readonly'; ?>>
                                     </td>
                                     <td>
                                         <input type="number" 

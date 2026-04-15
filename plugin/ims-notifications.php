@@ -758,7 +758,16 @@ add_action('init', function() {
     // Import form integration
     if ($_POST && isset($_POST['ims_import_nonce']) && wp_verify_nonce($_POST['ims_import_nonce'], 'ims_import_form')) {
         add_action('wp_loaded', function() {
-            $quantities = $_POST['quantity'] ?? array();
+            // Support both single-product form (scalar product + quantity) and batch form (quantity[product] array)
+            if (isset($_POST['quantity']) && is_array($_POST['quantity'])) {
+                $quantities = $_POST['quantity'];
+            } elseif (isset($_POST['product']) && isset($_POST['quantity']) && !is_array($_POST['quantity'])) {
+                $product_name = sanitize_text_field($_POST['product']);
+                $qty_val = floatval($_POST['quantity']);
+                $quantities = ($product_name !== '' && $qty_val > 0) ? array($product_name => $qty_val) : array();
+            } else {
+                $quantities = array();
+            }
             $imported_count = 0;
             $total_quantity = 0;
             $products = array();
