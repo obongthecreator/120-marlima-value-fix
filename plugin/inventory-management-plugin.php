@@ -1686,8 +1686,8 @@ function ims_handle_stock_submission() {
     }
 
     global $wpdb;
-    $opening_values = $_POST['opening'] ?? array();
-    $used_values    = $_POST['used'] ?? array();
+    $opening_values = $_POST['opening_packs'] ?? array();
+    $used_values    = $_POST['used_packs'] ?? array();
     $current_user   = wp_get_current_user();
     $lagos_time     = ims_get_lagos_time();
     $today          = date('Y-m-d', strtotime($lagos_time));
@@ -1921,10 +1921,11 @@ function ims_handle_chopped_submission() {
 
     global $wpdb;
 
-    $opening_values  = $_POST['opening'] ?? array();
-    $prepared_values = $_POST['prepared'] ?? array();
-    $packs_values    = $_POST['packs'] ?? array();
-    $remarks_values  = $_POST['remarks'] ?? array();
+    $opening_values  = $_POST['opening_whole'] ?? array();
+    $prepared_values = $_POST['prepared_whole'] ?? array();
+    $packs_values    = $_POST['packs_gotten'] ?? array();
+    $remarks_raw     = $_POST['remarks'] ?? '';
+    $remarks_values  = is_array($remarks_raw) ? $remarks_raw : array();
 
     $current_user = wp_get_current_user();
     $lagos_time   = ims_get_lagos_time();

@@ -118,9 +118,9 @@ class IMS_Ajax {
         $is_admin     = ims_user_can_edit_all_fields();
         $eps          = 1e-6;
         
-        // The stock form sends opening[product] and used[product] arrays
-        $opening_values = isset($_POST['opening']) && is_array($_POST['opening']) ? $_POST['opening'] : array();
-        $used_values    = isset($_POST['used']) && is_array($_POST['used']) ? $_POST['used'] : array();
+        // The stock form sends opening_packs[product] and used_packs[product] arrays
+        $opening_values = isset($_POST['opening_packs']) && is_array($_POST['opening_packs']) ? $_POST['opening_packs'] : array();
+        $used_values    = isset($_POST['used_packs']) && is_array($_POST['used_packs']) ? $_POST['used_packs'] : array();
         
         // Process: admin → all products; staff → only submitted ones
         $products = $is_admin ? ims_get_products('all') : array_keys($used_values);
@@ -213,11 +213,12 @@ class IMS_Ajax {
         $is_staff      = ims_is_staff_user();
         $eps           = 1e-6;
         
-        // The chopped form sends opening[fruit], prepared[fruit], packs[fruit], remarks[fruit]
-        $opening_values  = isset($_POST['opening']) && is_array($_POST['opening']) ? $_POST['opening'] : array();
-        $prepared_values = isset($_POST['prepared']) && is_array($_POST['prepared']) ? $_POST['prepared'] : array();
-        $packs_values    = isset($_POST['packs']) && is_array($_POST['packs']) ? $_POST['packs'] : array();
-        $remarks_values  = isset($_POST['remarks']) && is_array($_POST['remarks']) ? $_POST['remarks'] : array();
+        // The chopped form sends opening_whole[fruit], prepared_whole[fruit], packs_gotten[fruit], remarks (scalar)
+        $opening_values  = isset($_POST['opening_whole']) && is_array($_POST['opening_whole']) ? $_POST['opening_whole'] : array();
+        $prepared_values = isset($_POST['prepared_whole']) && is_array($_POST['prepared_whole']) ? $_POST['prepared_whole'] : array();
+        $packs_values    = isset($_POST['packs_gotten']) && is_array($_POST['packs_gotten']) ? $_POST['packs_gotten'] : array();
+        $remarks_raw     = isset($_POST['remarks']) ? $_POST['remarks'] : '';
+        $remarks_values  = is_array($remarks_raw) ? $remarks_raw : array();
         
         $fruits = $is_admin ? ims_get_products('chopped') : array_keys(array_merge(
             is_array($prepared_values) ? $prepared_values : array(),

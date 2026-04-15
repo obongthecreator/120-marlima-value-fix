@@ -780,9 +780,10 @@ add_action('init', function() {
     // Chopped form integration
     if ($_POST && isset($_POST['ims_chopped_nonce']) && wp_verify_nonce($_POST['ims_chopped_nonce'], 'ims_chopped_form')) {
         add_action('wp_loaded', function() {
-            $prepared_values = $_POST['prepared'] ?? array();
-            $packs_values = $_POST['packs'] ?? array();
-            $remarks_values = $_POST['remarks'] ?? array();
+            $prepared_values = $_POST['prepared_whole'] ?? array();
+            $packs_values = $_POST['packs_gotten'] ?? array();
+            $remarks_raw = $_POST['remarks'] ?? '';
+            $remarks_values = is_array($remarks_raw) ? $remarks_raw : array();
             
             $saved_count = 0;
             $remarks_count = 0;
@@ -806,8 +807,8 @@ add_action('init', function() {
     // Stock form integration
     if ($_POST && isset($_POST['ims_stock_nonce']) && wp_verify_nonce($_POST['ims_stock_nonce'], 'ims_stock_form')) {
         add_action('wp_loaded', function() {
-            $opening_values = $_POST['opening'] ?? array();
-            $used_values = $_POST['used'] ?? array();
+            $opening_values = $_POST['opening_packs'] ?? array();
+            $used_values = $_POST['used_packs'] ?? array();
             
             $saved_count = 0;
             $products = array();
