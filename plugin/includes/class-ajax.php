@@ -221,7 +221,7 @@ class IMS_Ajax {
                 'used_count'     => count($used_values),
                 'products_count' => count($products),
                 'is_admin'       => $is_admin,
-                'post_keys'      => array_keys($_POST),
+                'post_field_count' => count($_POST),
             );
             wp_send_json_error('No stock data to save. Debug: ' . json_encode($debug));
         }
@@ -379,7 +379,7 @@ class IMS_Ajax {
                 'packs_count'    => count($packs_values),
                 'fruits_count'   => count($fruits),
                 'is_admin'       => $is_admin,
-                'post_keys'      => array_keys($_POST),
+                'post_field_count' => count($_POST),
             );
             wp_send_json_error('No chopped data to save. Debug: ' . json_encode($debug));
         }

@@ -393,7 +393,7 @@ function ims_extract_post_arrays($field_names) {
         foreach ($_POST as $key => $val) {
             foreach ($patterns as $name => $pattern) {
                 if (empty($result[$name]) && preg_match($pattern, $key, $m)) {
-                    $result[$name][sanitize_text_field($m[1])] = $val;
+                    $result[$name][sanitize_text_field($m[1])] = sanitize_text_field($val);
                 }
             }
         }
