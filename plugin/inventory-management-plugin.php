@@ -1695,8 +1695,8 @@ function ims_handle_stock_submission() {
     $is_admin       = ims_user_can_edit_all_fields();
     $eps            = 1e-6;
 
-    // Process: admin → all products; staff → only submitted ones
-    $products = $is_admin ? ims_get_products('all') : array_keys($used_values);
+    // Process ALL products — do not filter by role for the list
+    $products = ims_get_products('all');
     $saved = 0;
 
     foreach ($products as $product) {
@@ -1722,11 +1722,10 @@ function ims_handle_stock_submission() {
         $open_in = isset($opening_values[$product]) ? max(0.0, floatval($opening_values[$product])) : $base_open;
         $used_in = isset($used_values[$product])    ? max(0.0, floatval($used_values[$product]))    : 0.0;
 
-        $should_save = $existing
-            ? ($is_admin ? (abs($open_in - $base_open) > $eps || abs($used_in - $base_used) > $eps) : ($used_in > $eps))
-            : ($is_admin ? ($open_in > $eps || $used_in > $eps) : ($used_in > $eps));
-
-        if (!$should_save) continue;
+        // For non-admin: if no form value submitted and no existing record, skip this product
+        if (!$is_admin && !isset($used_values[$product]) && !$existing) {
+            continue;
+        }
 
         // Admin can set opening from form; staff always gets it from database
         if ($is_admin && isset($opening_values[$product])) {
@@ -1934,7 +1933,14 @@ function ims_handle_chopped_submission() {
     $prepared_values = $_POST['prepared_whole'] ?? array();
     $packs_values    = $_POST['packs_gotten'] ?? array();
     $remarks_raw     = $_POST['remarks'] ?? '';
-    $remarks_values  = is_array($remarks_raw) ? $remarks_raw : array();
+    // Support both per-fruit array and scalar remarks
+    if (is_array($remarks_raw)) {
+        $remarks_values = $remarks_raw;
+        $remarks_scalar = '';
+    } else {
+        $remarks_values = array();
+        $remarks_scalar = ims_normalize_remarks(sanitize_textarea_field($remarks_raw));
+    }
 
     $current_user = wp_get_current_user();
     $lagos_time   = ims_get_lagos_time();
@@ -1951,8 +1957,15 @@ function ims_handle_chopped_submission() {
         $open_in = isset($opening_values[$fruit])  ? max(0.0, floatval($opening_values[$fruit]))  : 0.0;
         $prep_in = isset($prepared_values[$fruit]) ? max(0.0, floatval($prepared_values[$fruit])) : 0.0;
         $packs_in= isset($packs_values[$fruit])    ? max(0.0, floatval($packs_values[$fruit]))    : 0.0;
-        $rem_raw = $remarks_values[$fruit] ?? '';
-        $rem_in  = ims_normalize_remarks(sanitize_textarea_field($rem_raw));
+
+        // Resolve remarks: per-fruit array, scalar, or empty
+        if (isset($remarks_values[$fruit])) {
+            $rem_in = ims_normalize_remarks(sanitize_textarea_field($remarks_values[$fruit]));
+        } elseif ($remarks_scalar !== '') {
+            $rem_in = $remarks_scalar;
+        } else {
+            $rem_in = '';
+        }
 
         $existing = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM $chopped_table WHERE fruit = %s AND DATE(date_created) = %s ORDER BY id DESC LIMIT 1",
@@ -1973,8 +1986,8 @@ function ims_handle_chopped_submission() {
             $base_rem   = '';
         }
 
-        if (!$existing && $open_in <= $eps && $prep_in <= $eps && $packs_in <= $eps) {
-            // Do not create a new row with only zeros
+        // For non-admin: skip fruit only if no form data submitted and no existing record
+        if (!$is_admin && !isset($prepared_values[$fruit]) && !isset($packs_values[$fruit]) && !$existing) {
             continue;
         }
 
@@ -2014,14 +2027,6 @@ function ims_handle_chopped_submission() {
         );
 
         if ($existing) {
-            $changed = (abs($final_open - $base_open) > $eps) ||
-                       (abs($final_prep - $base_prep) > $eps) ||
-                       (abs($final_packs - $base_packs) > $eps) ||
-                       (trim((string)$final_rem) !== trim((string)$base_rem));
-            $has_non_zero = ($final_open > $eps) || ($final_imp > $eps) || ($final_prep > $eps) || ($final_packs > $eps);
-            if (!$changed || !$has_non_zero) {
-                continue;
-            }
             $res = $wpdb->update($chopped_table, $data, array('id' => $existing->id), array('%f','%f','%f','%f','%f','%s','%s','%s'), array('%d'));
         } else {
             $data['fruit']        = sanitize_text_field($fruit);
@@ -2103,6 +2108,40 @@ add_action('wp_footer', function() {
         var message = document.createElement("div");
         message.innerHTML = ' . json_encode($message) . ';
         message.style.cssText = "position: fixed; top: 20px; right: 20px; background: #d4edda; color: #155724; padding: 12px 16px; border-radius: 8px; border: 2px solid #c3e6cb; z-index: 9999; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-width: 520px; font-size: 14px;";
+        document.body.appendChild(message);
+        setTimeout(function() { message.remove(); }, 10000);
+    });
+    </script>';
+});
+
+/* =========================
+   Error toast messages (for traditional POST form failures)
+   ========================= */
+add_action('wp_footer', function() {
+    if (!isset($_GET['ims_error'])) return;
+
+    $type = sanitize_text_field($_GET['ims_error']);
+    $message = '';
+    switch ($type) {
+        case 'stock_no_data':
+            $message = '<iconify-icon icon="solar:danger-triangle-linear" style="font-size:1.2em;vertical-align:middle;"></iconify-icon> Stock form: No data was saved. Please enter values and try again.';
+            break;
+        case 'chopped_no_data':
+            $message = '<iconify-icon icon="solar:danger-triangle-linear" style="font-size:1.2em;vertical-align:middle;"></iconify-icon> Chopped form: No data was saved. Please enter values and try again.';
+            break;
+        case 'import_save_failed':
+            $message = '<iconify-icon icon="solar:danger-triangle-linear" style="font-size:1.2em;vertical-align:middle;"></iconify-icon> Import form: No data was saved. Please select a product and enter a quantity.';
+            break;
+        default:
+            $message = '<iconify-icon icon="solar:danger-triangle-linear" style="font-size:1.2em;vertical-align:middle;"></iconify-icon> Form submission failed. Please try again.';
+            break;
+    }
+
+    echo '<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var message = document.createElement("div");
+        message.innerHTML = ' . json_encode($message) . ';
+        message.style.cssText = "position: fixed; top: 20px; right: 20px; background: #f8d7da; color: #721c24; padding: 12px 16px; border-radius: 8px; border: 2px solid #f5c6cb; z-index: 9999; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-width: 520px; font-size: 14px;";
         document.body.appendChild(message);
         setTimeout(function() { message.remove(); }, 10000);
     });

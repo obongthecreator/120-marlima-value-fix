@@ -136,12 +136,16 @@ class IMS_Ajax {
             $remarks_text = ims_normalize_remarks($remarks_text);
         }
         
-        // Process: admin → all products; staff → only submitted ones
-        $products = $is_admin ? ims_get_products('all') : array_keys($used_values);
+        // Always use the full product list — never rely solely on form keys
+        $products = ims_get_products('all');
+        if (empty($products)) {
+            wp_send_json_error('No products configured in the system.');
+        }
         $saved = 0;
         
         foreach ($products as $product) {
             $product = (string)$product;
+            if ($product === '') continue;
             
             $existing = $wpdb->get_row($wpdb->prepare(
                 "SELECT * FROM $stock_table WHERE product = %s AND DATE(date_created) = %s ORDER BY id DESC LIMIT 1",
@@ -164,8 +168,20 @@ class IMS_Ajax {
             // Added packs from existing record or auto-computed
             $added_packs = $existing ? floatval($existing->added_packs) : 0.0;
             
-            // Used packs from form
-            $used_packs = isset($used_values[$product]) ? max(0.0, floatval($used_values[$product])) : ($existing ? floatval($existing->used_packs) : 0.0);
+            // Used packs: prefer form value, fall back to existing, then 0
+            if (isset($used_values[$product])) {
+                $used_packs = max(0.0, floatval($used_values[$product]));
+            } elseif ($existing) {
+                $used_packs = max(0.0, floatval($existing->used_packs));
+            } else {
+                $used_packs = 0.0;
+            }
+            
+            // For non-admin: if no form value submitted and no existing record, skip this product
+            // (avoids creating empty rows for products the user didn't interact with)
+            if (!$is_admin && !isset($used_values[$product]) && !$existing) {
+                continue;
+            }
             
             // Cap used to opening + added
             $max_used = $opening_packs + $added_packs;
@@ -204,7 +220,14 @@ class IMS_Ajax {
                 'timestamp' => $lagos_time
             ));
         } else {
-            wp_send_json_error('No stock data to save');
+            // Provide debug info to help diagnose
+            $debug = array(
+                'opening_count' => count($opening_values),
+                'used_count'    => count($used_values),
+                'products_count'=> count($products),
+                'is_admin'      => $is_admin,
+            );
+            wp_send_json_error('No stock data to save. Debug: ' . json_encode($debug));
         }
     }
     
@@ -245,15 +268,16 @@ class IMS_Ajax {
             }
         }
         
-        $fruits = $is_admin ? ims_get_products('chopped') : array_keys(array_merge(
-            is_array($prepared_values) ? $prepared_values : array(),
-            is_array($packs_values) ? $packs_values : array()
-        ));
-        $fruits = array_unique($fruits);
+        // Always use the full fruit list — never rely solely on form keys
+        $fruits = ims_get_products('chopped');
+        if (empty($fruits)) {
+            wp_send_json_error('No chopped/fruit products configured in the system.');
+        }
         $saved = 0;
         
         foreach ($fruits as $fruit) {
             $fruit = sanitize_text_field((string)$fruit);
+            if ($fruit === '') continue;
             
             $existing = $wpdb->get_row($wpdb->prepare(
                 "SELECT * FROM $chopped_table WHERE fruit = %s AND DATE(date_created) = %s ORDER BY id DESC LIMIT 1",
@@ -276,8 +300,14 @@ class IMS_Ajax {
             // Import whole from existing record
             $final_imp = $existing ? floatval($existing->import_whole) : 0.0;
             
-            // Prepared from form
-            $final_prep = isset($prepared_values[$fruit]) ? max(0.0, floatval($prepared_values[$fruit])) : ($existing ? floatval($existing->prepared_whole) : 0.0);
+            // Prepared from form, fall back to existing, then 0
+            if (isset($prepared_values[$fruit])) {
+                $final_prep = max(0.0, floatval($prepared_values[$fruit]));
+            } elseif ($existing) {
+                $final_prep = max(0.0, floatval($existing->prepared_whole));
+            } else {
+                $final_prep = 0.0;
+            }
             
             // Cap prepared
             $max_prep = $final_open + $final_imp;
@@ -285,9 +315,20 @@ class IMS_Ajax {
                 $final_prep = $max_prep;
             }
             
-            // Packs gotten from form
-            $final_packs = isset($packs_values[$fruit]) ? max(0.0, floatval($packs_values[$fruit])) : ($existing ? floatval($existing->packs_gotten) : 0.0);
+            // Packs gotten from form, fall back to existing, then 0
+            if (isset($packs_values[$fruit])) {
+                $final_packs = max(0.0, floatval($packs_values[$fruit]));
+            } elseif ($existing) {
+                $final_packs = max(0.0, floatval($existing->packs_gotten));
+            } else {
+                $final_packs = 0.0;
+            }
             $base_packs  = $existing ? floatval($existing->packs_gotten) : 0.0;
+            
+            // For non-admin: if no form values submitted and no existing record, skip
+            if (!$is_admin && !isset($prepared_values[$fruit]) && !isset($packs_values[$fruit]) && !$existing) {
+                continue;
+            }
             
             // Remarks: use per-fruit array if available, else scalar, else existing DB value
             if (isset($remarks_values[$fruit])) {
@@ -340,7 +381,14 @@ class IMS_Ajax {
                 'timestamp' => $lagos_time
             ));
         } else {
-            wp_send_json_error('No chopped data to save');
+            $debug = array(
+                'opening_count'  => count($opening_values),
+                'prepared_count' => count($prepared_values),
+                'packs_count'    => count($packs_values),
+                'fruits_count'   => count($fruits),
+                'is_admin'       => $is_admin,
+            );
+            wp_send_json_error('No chopped data to save. Debug: ' . json_encode($debug));
         }
     }
     
