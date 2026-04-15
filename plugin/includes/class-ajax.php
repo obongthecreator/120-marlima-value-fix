@@ -127,16 +127,38 @@ class IMS_Ajax {
         $is_admin     = ims_user_can_edit_all_fields();
         $eps          = 1e-6;
         
-        // The stock form sends opening_packs[product] and used_packs[product] arrays
-        $opening_values = isset($_POST['opening_packs']) && is_array($_POST['opening_packs']) ? $_POST['opening_packs'] : array();
-        $used_values    = isset($_POST['used_packs']) && is_array($_POST['used_packs']) ? $_POST['used_packs'] : array();
-        $remarks_raw    = isset($_POST['remarks']) ? $_POST['remarks'] : '';
-        $remarks_text   = is_string($remarks_raw) ? sanitize_textarea_field($remarks_raw) : '';
+        // Extract form arrays — robust: check $_POST directly
+        $opening_values = array();
+        $used_values    = array();
+        
+        if (isset($_POST['opening_packs']) && is_array($_POST['opening_packs'])) {
+            $opening_values = $_POST['opening_packs'];
+        }
+        if (isset($_POST['used_packs']) && is_array($_POST['used_packs'])) {
+            $used_values = $_POST['used_packs'];
+        }
+        
+        // FALLBACK: If arrays are empty, try to reconstruct from raw POST keys
+        // This handles cases where PHP fails to parse bracket-style array names
+        if (empty($opening_values) || empty($used_values)) {
+            foreach ($_POST as $key => $val) {
+                // Match opening_packs[ProductName] that wasn't parsed as array
+                if (preg_match('/^opening_packs\[(.+)\]$/', $key, $m)) {
+                    $opening_values[$m[1]] = $val;
+                }
+                if (preg_match('/^used_packs\[(.+)\]$/', $key, $m)) {
+                    $used_values[$m[1]] = $val;
+                }
+            }
+        }
+        
+        $remarks_raw  = isset($_POST['remarks']) ? $_POST['remarks'] : '';
+        $remarks_text = is_string($remarks_raw) ? sanitize_textarea_field($remarks_raw) : '';
         if (function_exists('ims_normalize_remarks')) {
             $remarks_text = ims_normalize_remarks($remarks_text);
         }
         
-        // Always use the full product list — never rely solely on form keys
+        // Always use the full product list
         $products = ims_get_products('all');
         if (empty($products)) {
             wp_send_json_error('No products configured in the system.');
@@ -165,7 +187,7 @@ class IMS_Ajax {
                 $opening_packs = $prev ? max(0.0, floatval($prev->closing_packs)) : 0.0;
             }
             
-            // Added packs from existing record or auto-computed
+            // Added packs from existing record
             $added_packs = $existing ? floatval($existing->added_packs) : 0.0;
             
             // Used packs: prefer form value, fall back to existing, then 0
@@ -175,12 +197,6 @@ class IMS_Ajax {
                 $used_packs = max(0.0, floatval($existing->used_packs));
             } else {
                 $used_packs = 0.0;
-            }
-            
-            // For non-admin: if no form value submitted and no existing record, skip this product
-            // (avoids creating empty rows for products the user didn't interact with)
-            if (!$is_admin && !isset($used_values[$product]) && !$existing) {
-                continue;
             }
             
             // Cap used to opening + added
@@ -220,12 +236,12 @@ class IMS_Ajax {
                 'timestamp' => $lagos_time
             ));
         } else {
-            // Provide debug info to help diagnose
             $debug = array(
-                'opening_count' => count($opening_values),
-                'used_count'    => count($used_values),
-                'products_count'=> count($products),
-                'is_admin'      => $is_admin,
+                'opening_count'  => count($opening_values),
+                'used_count'     => count($used_values),
+                'products_count' => count($products),
+                'is_admin'       => $is_admin,
+                'post_keys'      => array_keys($_POST),
             );
             wp_send_json_error('No stock data to save. Debug: ' . json_encode($debug));
         }
@@ -251,12 +267,37 @@ class IMS_Ajax {
         $is_staff      = ims_is_staff_user();
         $eps           = 1e-6;
         
-        // The chopped form sends opening_whole[fruit], prepared_whole[fruit], packs_gotten[fruit], remarks (scalar or per-fruit array)
-        $opening_values  = isset($_POST['opening_whole']) && is_array($_POST['opening_whole']) ? $_POST['opening_whole'] : array();
-        $prepared_values = isset($_POST['prepared_whole']) && is_array($_POST['prepared_whole']) ? $_POST['prepared_whole'] : array();
-        $packs_values    = isset($_POST['packs_gotten']) && is_array($_POST['packs_gotten']) ? $_POST['packs_gotten'] : array();
-        $remarks_raw     = isset($_POST['remarks']) ? $_POST['remarks'] : '';
-        // Support both per-fruit array and scalar remarks
+        // Extract form arrays — robust with fallback
+        $opening_values  = array();
+        $prepared_values = array();
+        $packs_values    = array();
+        
+        if (isset($_POST['opening_whole']) && is_array($_POST['opening_whole'])) {
+            $opening_values = $_POST['opening_whole'];
+        }
+        if (isset($_POST['prepared_whole']) && is_array($_POST['prepared_whole'])) {
+            $prepared_values = $_POST['prepared_whole'];
+        }
+        if (isset($_POST['packs_gotten']) && is_array($_POST['packs_gotten'])) {
+            $packs_values = $_POST['packs_gotten'];
+        }
+        
+        // FALLBACK: reconstruct from raw POST keys if PHP didn't parse bracket arrays
+        if (empty($opening_values) || empty($prepared_values) || empty($packs_values)) {
+            foreach ($_POST as $key => $val) {
+                if (preg_match('/^opening_whole\[(.+)\]$/', $key, $m)) {
+                    $opening_values[$m[1]] = $val;
+                }
+                if (preg_match('/^prepared_whole\[(.+)\]$/', $key, $m)) {
+                    $prepared_values[$m[1]] = $val;
+                }
+                if (preg_match('/^packs_gotten\[(.+)\]$/', $key, $m)) {
+                    $packs_values[$m[1]] = $val;
+                }
+            }
+        }
+        
+        $remarks_raw = isset($_POST['remarks']) ? $_POST['remarks'] : '';
         if (is_array($remarks_raw)) {
             $remarks_values = $remarks_raw;
             $remarks_scalar = '';
@@ -268,7 +309,7 @@ class IMS_Ajax {
             }
         }
         
-        // Always use the full fruit list — never rely solely on form keys
+        // Always use the full fruit list
         $fruits = ims_get_products('chopped');
         if (empty($fruits)) {
             wp_send_json_error('No chopped/fruit products configured in the system.');
@@ -323,14 +364,9 @@ class IMS_Ajax {
             } else {
                 $final_packs = 0.0;
             }
-            $base_packs  = $existing ? floatval($existing->packs_gotten) : 0.0;
+            $base_packs = $existing ? floatval($existing->packs_gotten) : 0.0;
             
-            // For non-admin: if no form values submitted and no existing record, skip
-            if (!$is_admin && !isset($prepared_values[$fruit]) && !isset($packs_values[$fruit]) && !$existing) {
-                continue;
-            }
-            
-            // Remarks: use per-fruit array if available, else scalar, else existing DB value
+            // Remarks: per-fruit array > scalar > existing
             if (isset($remarks_values[$fruit])) {
                 $final_remarks = sanitize_textarea_field($remarks_values[$fruit]);
             } elseif ($remarks_scalar !== '') {
@@ -387,6 +423,7 @@ class IMS_Ajax {
                 'packs_count'    => count($packs_values),
                 'fruits_count'   => count($fruits),
                 'is_admin'       => $is_admin,
+                'post_keys'      => array_keys($_POST),
             );
             wp_send_json_error('No chopped data to save. Debug: ' . json_encode($debug));
         }

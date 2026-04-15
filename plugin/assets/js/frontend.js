@@ -77,136 +77,72 @@
             });
         },
 
-        // Handle import form submission
-        handleImportSubmit: function(e) {
-            e.preventDefault();
-            
-            var form = $(this);
+        // Build FormData from a jQuery form, including readonly fields
+        buildFormData: function(form, action) {
+            var fd = new FormData(form[0]);
+            // FormData from a native form element automatically includes ALL
+            // non-disabled inputs (including readonly) with their exact names.
+            // Append AJAX-specific fields:
+            fd.append('action', action);
+            fd.append('nonce', ims_ajax.nonce);
+            return fd;
+        },
+
+        // Generic AJAX submit using native FormData (avoids jQuery serialization bugs)
+        ajaxSubmitForm: function(form, action, successMsg) {
             var submitBtn = form.find('button[type="submit"]');
-            
-            // Validate form
-            if (!IMS.validateImportForm(form)) {
-                return false;
-            }
-            
-            // Show loading state
             var originalText = submitBtn.html();
             submitBtn.prop('disabled', true).html('<span class="ims-loading"></span> Submitting...');
-            
-            // Serialize the actual form fields and append AJAX-specific params
-            var formData = form.serializeArray();
-            formData.push({name: 'action', value: 'ims_submit_import'});
-            formData.push({name: 'nonce', value: ims_ajax.nonce});
-            
-            // Submit via AJAX
+
+            var fd = IMS.buildFormData(form, action);
+
             $.ajax({
                 url: ims_ajax.ajax_url,
                 type: 'POST',
                 dataType: 'json',
-                data: $.param(formData),
+                data: fd,
+                processData: false,   // tell jQuery NOT to serialize FormData
+                contentType: false,   // tell jQuery NOT to set Content-Type (browser sets multipart boundary)
                 success: function(response) {
                     if (response.success) {
-                        alert(response.data.message || 'Import submitted successfully!');
+                        alert(response.data.message || successMsg);
                         window.location.reload();
                     } else {
                         alert('Error: ' + (response.data || 'Submission failed. Please try again.'));
                     }
                 },
                 error: function(xhr, status, error) {
+                    console.error('AJAX Error:', status, error, xhr.responseText);
                     alert('Network error: ' + error + '. Please check your connection and try again.');
                 },
                 complete: function() {
                     submitBtn.prop('disabled', false).html(originalText);
                 }
             });
+        },
+
+        // Handle import form submission
+        handleImportSubmit: function(e) {
+            e.preventDefault();
+            var form = $(this);
+            if (!IMS.validateImportForm(form)) return false;
+            IMS.ajaxSubmitForm(form, 'ims_submit_import', 'Import submitted successfully!');
         },
 
         // Handle stock form submission
         handleStockSubmit: function(e) {
             e.preventDefault();
-            
             var form = $(this);
-            var submitBtn = form.find('button[type="submit"]');
-            
-            // Validate form
-            if (!IMS.validateStockForm(form)) {
-                return false;
-            }
-            
-            // Show loading state
-            var originalText = submitBtn.html();
-            submitBtn.prop('disabled', true).html('<span class="ims-loading"></span> Submitting...');
-            
-            // Serialize the actual form fields and append AJAX-specific params
-            var formData = form.serializeArray();
-            formData.push({name: 'action', value: 'ims_submit_stock'});
-            formData.push({name: 'nonce', value: ims_ajax.nonce});
-            
-            // Submit via AJAX
-            $.ajax({
-                url: ims_ajax.ajax_url,
-                type: 'POST',
-                dataType: 'json',
-                data: $.param(formData),
-                success: function(response) {
-                    if (response.success) {
-                        alert(response.data.message || 'Stock records saved successfully!');
-                        window.location.reload();
-                    } else {
-                        alert('Error: ' + (response.data || 'Submission failed. Please try again.'));
-                    }
-                },
-                error: function(xhr, status, error) {
-                    alert('Network error: ' + error + '. Please check your connection and try again.');
-                },
-                complete: function() {
-                    submitBtn.prop('disabled', false).html(originalText);
-                }
-            });
+            if (!IMS.validateStockForm(form)) return false;
+            IMS.ajaxSubmitForm(form, 'ims_submit_stock', 'Stock records saved successfully!');
         },
 
         // Handle chopped form submission
         handleChoppedSubmit: function(e) {
             e.preventDefault();
-            
             var form = $(this);
-            var submitBtn = form.find('button[type="submit"]');
-            
-            // Validate form
-            if (!IMS.validateChoppedForm(form)) {
-                return false;
-            }
-            
-            // Show loading state
-            var originalText = submitBtn.html();
-            submitBtn.prop('disabled', true).html('<span class="ims-loading"></span> Submitting...');
-            
-            // Serialize the actual form fields and append AJAX-specific params
-            var formData = form.serializeArray();
-            formData.push({name: 'action', value: 'ims_submit_chopped'});
-            formData.push({name: 'nonce', value: ims_ajax.nonce});
-            
-            // Submit via AJAX
-            $.ajax({
-                url: ims_ajax.ajax_url,
-                type: 'POST',
-                dataType: 'json',
-                data: $.param(formData),
-                success: function(response) {
-                    if (response.success) {
-                        alert(response.data.message || 'Chopped records saved successfully!');
-                        window.location.reload();
-                    } else {
-                        alert('Error: ' + (response.data || 'Submission failed. Please try again.'));
-                    }
-                },
-                error: function(xhr, status, error) {
-                    alert('Network error: ' + error + '. Please check your connection and try again.');
-                },
-                complete: function() {
-                    submitBtn.prop('disabled', false).html(originalText);
-                }
-            });
+            if (!IMS.validateChoppedForm(form)) return false;
+            IMS.ajaxSubmitForm(form, 'ims_submit_chopped', 'Chopped records saved successfully!');
         },
 
         // Validate import form — checks both scalar and array quantity inputs
