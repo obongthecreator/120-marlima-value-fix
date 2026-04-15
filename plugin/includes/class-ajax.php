@@ -127,30 +127,10 @@ class IMS_Ajax {
         $is_admin     = ims_user_can_edit_all_fields();
         $eps          = 1e-6;
         
-        // Extract form arrays — robust: check $_POST directly
-        $opening_values = array();
-        $used_values    = array();
-        
-        if (isset($_POST['opening_packs']) && is_array($_POST['opening_packs'])) {
-            $opening_values = $_POST['opening_packs'];
-        }
-        if (isset($_POST['used_packs']) && is_array($_POST['used_packs'])) {
-            $used_values = $_POST['used_packs'];
-        }
-        
-        // FALLBACK: If arrays are empty, try to reconstruct from raw POST keys
-        // This handles cases where PHP fails to parse bracket-style array names
-        if (empty($opening_values) || empty($used_values)) {
-            foreach ($_POST as $key => $val) {
-                // Match opening_packs[ProductName] that wasn't parsed as array
-                if (preg_match('/^opening_packs\[(.+)\]$/', $key, $m)) {
-                    $opening_values[$m[1]] = $val;
-                }
-                if (preg_match('/^used_packs\[(.+)\]$/', $key, $m)) {
-                    $used_values[$m[1]] = $val;
-                }
-            }
-        }
+        // Extract form arrays using robust helper with fallback
+        $parsed = ims_extract_post_arrays(array('opening_packs', 'used_packs'));
+        $opening_values = $parsed['opening_packs'];
+        $used_values    = $parsed['used_packs'];
         
         $remarks_raw  = isset($_POST['remarks']) ? $_POST['remarks'] : '';
         $remarks_text = is_string($remarks_raw) ? sanitize_textarea_field($remarks_raw) : '';
@@ -267,35 +247,11 @@ class IMS_Ajax {
         $is_staff      = ims_is_staff_user();
         $eps           = 1e-6;
         
-        // Extract form arrays — robust with fallback
-        $opening_values  = array();
-        $prepared_values = array();
-        $packs_values    = array();
-        
-        if (isset($_POST['opening_whole']) && is_array($_POST['opening_whole'])) {
-            $opening_values = $_POST['opening_whole'];
-        }
-        if (isset($_POST['prepared_whole']) && is_array($_POST['prepared_whole'])) {
-            $prepared_values = $_POST['prepared_whole'];
-        }
-        if (isset($_POST['packs_gotten']) && is_array($_POST['packs_gotten'])) {
-            $packs_values = $_POST['packs_gotten'];
-        }
-        
-        // FALLBACK: reconstruct from raw POST keys if PHP didn't parse bracket arrays
-        if (empty($opening_values) || empty($prepared_values) || empty($packs_values)) {
-            foreach ($_POST as $key => $val) {
-                if (preg_match('/^opening_whole\[(.+)\]$/', $key, $m)) {
-                    $opening_values[$m[1]] = $val;
-                }
-                if (preg_match('/^prepared_whole\[(.+)\]$/', $key, $m)) {
-                    $prepared_values[$m[1]] = $val;
-                }
-                if (preg_match('/^packs_gotten\[(.+)\]$/', $key, $m)) {
-                    $packs_values[$m[1]] = $val;
-                }
-            }
-        }
+        // Extract form arrays using robust helper with fallback
+        $parsed = ims_extract_post_arrays(array('opening_whole', 'prepared_whole', 'packs_gotten'));
+        $opening_values  = $parsed['opening_whole'];
+        $prepared_values = $parsed['prepared_whole'];
+        $packs_values    = $parsed['packs_gotten'];
         
         $remarks_raw = isset($_POST['remarks']) ? $_POST['remarks'] : '';
         if (is_array($remarks_raw)) {

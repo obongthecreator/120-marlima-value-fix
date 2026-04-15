@@ -1686,20 +1686,9 @@ function ims_handle_stock_submission() {
     }
 
     global $wpdb;
-    $opening_values = (isset($_POST['opening_packs']) && is_array($_POST['opening_packs'])) ? $_POST['opening_packs'] : array();
-    $used_values    = (isset($_POST['used_packs']) && is_array($_POST['used_packs'])) ? $_POST['used_packs'] : array();
-    
-    // FALLBACK: If arrays are empty, try to reconstruct from raw POST keys
-    if (empty($opening_values) || empty($used_values)) {
-        foreach ($_POST as $key => $val) {
-            if (preg_match('/^opening_packs\[(.+)\]$/', $key, $m)) {
-                $opening_values[$m[1]] = $val;
-            }
-            if (preg_match('/^used_packs\[(.+)\]$/', $key, $m)) {
-                $used_values[$m[1]] = $val;
-            }
-        }
-    }
+    $parsed = ims_extract_post_arrays(array('opening_packs', 'used_packs'));
+    $opening_values = $parsed['opening_packs'];
+    $used_values    = $parsed['used_packs'];
     $current_user   = wp_get_current_user();
     $lagos_time     = ims_get_lagos_time();
     $today          = date('Y-m-d', strtotime($lagos_time));
@@ -1941,24 +1930,10 @@ function ims_handle_chopped_submission() {
 
     global $wpdb;
 
-    $opening_values  = (isset($_POST['opening_whole']) && is_array($_POST['opening_whole'])) ? $_POST['opening_whole'] : array();
-    $prepared_values = (isset($_POST['prepared_whole']) && is_array($_POST['prepared_whole'])) ? $_POST['prepared_whole'] : array();
-    $packs_values    = (isset($_POST['packs_gotten']) && is_array($_POST['packs_gotten'])) ? $_POST['packs_gotten'] : array();
-    
-    // FALLBACK: reconstruct from raw POST keys if PHP didn't parse bracket arrays
-    if (empty($opening_values) || empty($prepared_values) || empty($packs_values)) {
-        foreach ($_POST as $key => $val) {
-            if (preg_match('/^opening_whole\[(.+)\]$/', $key, $m)) {
-                $opening_values[$m[1]] = $val;
-            }
-            if (preg_match('/^prepared_whole\[(.+)\]$/', $key, $m)) {
-                $prepared_values[$m[1]] = $val;
-            }
-            if (preg_match('/^packs_gotten\[(.+)\]$/', $key, $m)) {
-                $packs_values[$m[1]] = $val;
-            }
-        }
-    }
+    $parsed = ims_extract_post_arrays(array('opening_whole', 'prepared_whole', 'packs_gotten'));
+    $opening_values  = $parsed['opening_whole'];
+    $prepared_values = $parsed['prepared_whole'];
+    $packs_values    = $parsed['packs_gotten'];
     
     $remarks_raw     = $_POST['remarks'] ?? '';
     // Support both per-fruit array and scalar remarks

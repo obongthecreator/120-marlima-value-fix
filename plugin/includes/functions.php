@@ -356,4 +356,49 @@ function ims_restore_database($backup_file) {
     
     return true;
 }
+
+/**
+ * Extract array-style POST fields with fallback for bracket-key parsing failures.
+ * 
+ * PHP normally parses `name[key]=val` POST fields into arrays. But some server
+ * configurations or encoding methods leave the brackets literal in the key.
+ * This function first checks for the native array, then falls back to regex
+ * parsing of raw $_POST keys.
+ *
+ * @param string[] $field_names  List of field base names to extract (e.g. ['opening_packs', 'used_packs'])
+ * @return array  Associative array keyed by field name, each value is an assoc array of product=>value
+ */
+function ims_extract_post_arrays($field_names) {
+    $result = array();
+    $any_missing = false;
+
+    // First pass: grab natively-parsed arrays
+    foreach ($field_names as $name) {
+        if (isset($_POST[$name]) && is_array($_POST[$name])) {
+            $result[$name] = $_POST[$name];
+        } else {
+            $result[$name] = array();
+            $any_missing = true;
+        }
+    }
+
+    // If any expected arrays are empty, try fallback regex on raw POST keys
+    if ($any_missing) {
+        // Build regex patterns for all field names
+        $patterns = array();
+        foreach ($field_names as $name) {
+            $patterns[$name] = '/^' . preg_quote($name, '/') . '\[(.+)\]$/';
+        }
+
+        foreach ($_POST as $key => $val) {
+            foreach ($patterns as $name => $pattern) {
+                if (empty($result[$name]) && preg_match($pattern, $key, $m)) {
+                    $result[$name][sanitize_text_field($m[1])] = $val;
+                }
+            }
+        }
+    }
+
+    return $result;
+}
 ?>
