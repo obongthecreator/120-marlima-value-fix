@@ -1686,6 +1686,8 @@ function ims_handle_stock_submission() {
     }
 
     global $wpdb;
+    // The active stock form still posts legacy field names (`opening[]`, `used[]`).
+    // Accept both legacy and canonical field names while the templates converge.
     $opening_values = ims_extract_post_array_variants('opening_packs');
     $used_values    = ims_extract_post_array_variants('used_packs');
     $current_user   = wp_get_current_user();
@@ -1929,6 +1931,8 @@ function ims_handle_chopped_submission() {
 
     global $wpdb;
 
+    // The active chopped form still posts legacy field names (`opening[]`, `prepared[]`, `packs[]`).
+    // Accept both legacy and canonical field names while the templates converge.
     $opening_values  = ims_extract_post_array_variants('opening_whole');
     $prepared_values = ims_extract_post_array_variants('prepared_whole');
     $packs_values    = ims_extract_post_array_variants('packs_gotten');
