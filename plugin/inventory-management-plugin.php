@@ -437,6 +437,21 @@ function ims_handle_admin_deletions() {
 }
 
 /* =========================
+   Auto-initialize DB tables + default products for existing installs
+   ========================= */
+add_action('admin_init', function () {
+    if (!current_user_can('manage_options')) return;
+
+    // Run once per plugin version to ensure tables + products exist
+    $db_init_version = get_option('ims_db_init_version', '');
+    if ($db_init_version === IMS_VERSION) return;
+
+    ims_create_database_tables();
+    ims_populate_default_products();
+    update_option('ims_db_init_version', IMS_VERSION);
+});
+
+/* =========================
    Products CRUD (admin_init)
    ========================= */
 add_action('admin_init', 'ims_handle_products_admin_actions');
@@ -1032,7 +1047,11 @@ function ims_populate_default_products() {
 
     $products_table = $wpdb->prefix . 'ims_products';
 
-    $wpdb->query("TRUNCATE TABLE $products_table");
+    // Only populate if table is empty — never truncate user data
+    $count = (int) $wpdb->get_var("SELECT COUNT(*) FROM $products_table");
+    if ($count > 0) {
+        return;
+    }
 
     $all_products = array(
         'Almond', 'Apple', 'Baking Powder', 'Banana', 'Blueberry', 'Cake',
@@ -1052,25 +1071,14 @@ function ims_populate_default_products() {
         'Tiger Nut', 'Watermelon'
     );
 
+    // Insert each product once with the correct type
     foreach ($all_products as $index => $product) {
+        $type = in_array($product, $chopped_products, true) ? 'chopped' : 'all';
         $wpdb->insert(
             $products_table,
             array(
                 'name' => $product,
-                'type' => 'all',
-                'is_active' => 1,
-                'sort_order' => $index + 1
-            ),
-            array('%s', '%s', '%d', '%d')
-        );
-    }
-
-    foreach ($chopped_products as $index => $product) {
-        $wpdb->insert(
-            $products_table,
-            array(
-                'name' => $product,
-                'type' => 'chopped',
+                'type' => $type,
                 'is_active' => 1,
                 'sort_order' => $index + 1
             ),
@@ -1089,16 +1097,16 @@ function ims_get_products($type = 'all') {
 
     if ($type === 'chopped') {
         $results = $wpdb->get_results(
-            "SELECT name FROM $products_table WHERE type = 'chopped' AND is_active = 1 ORDER BY sort_order ASC, name ASC"
+            "SELECT DISTINCT name FROM $products_table WHERE type = 'chopped' AND is_active = 1 ORDER BY sort_order ASC, name ASC"
         );
     } else {
         $results = $wpdb->get_results(
-            "SELECT name FROM $products_table WHERE is_active = 1 ORDER BY sort_order ASC, name ASC"
+            "SELECT DISTINCT name FROM $products_table WHERE is_active = 1 ORDER BY sort_order ASC, name ASC"
         );
     }
 
     if (!empty($results)) {
-        return array_column($results, 'name');
+        return array_values(array_unique(array_column($results, 'name')));
     }
 
     $all_products = array(
@@ -2386,6 +2394,7 @@ add_action('init', function() {
    ========================= */
 register_activation_hook(__FILE__, function() {
     ims_create_database_tables();
+    ims_populate_default_products();
     add_option('ims_low_stock_threshold', 10);
     add_option('ims_timezone', 'Africa/Lagos');
     add_option('ims_plugin_version', IMS_VERSION);
