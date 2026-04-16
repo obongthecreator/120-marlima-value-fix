@@ -77,32 +77,30 @@
             });
         },
 
-        // Build FormData from a jQuery form, including readonly fields
-        buildFormData: function(form, action) {
-            var fd = new FormData(form[0]);
-            // FormData from a native form element automatically includes ALL
-            // non-disabled inputs (including readonly) with their exact names.
-            // Append AJAX-specific fields:
-            fd.append('action', action);
-            fd.append('nonce', ims_ajax.nonce);
-            return fd;
+        // Build a standard URL-encoded payload for WordPress AJAX.
+        // This keeps bracketed field names intact while avoiding multipart requests.
+        buildAjaxPayload: function(form, action) {
+            var payload = form.serialize();
+            payload += (payload ? '&' : '') + $.param({
+                action: action,
+                nonce: ims_ajax.nonce
+            });
+            return payload;
         },
 
-        // Generic AJAX submit using native FormData (avoids jQuery serialization bugs)
+        // Generic AJAX submit using standard form encoding
         ajaxSubmitForm: function(form, action, successMsg) {
             var submitBtn = form.find('button[type="submit"]');
             var originalText = submitBtn.html();
             submitBtn.prop('disabled', true).html('<span class="ims-loading"></span> Submitting...');
 
-            var fd = IMS.buildFormData(form, action);
+            var payload = IMS.buildAjaxPayload(form, action);
 
             $.ajax({
                 url: ims_ajax.ajax_url,
                 type: 'POST',
                 dataType: 'json',
-                data: fd,
-                processData: false,   // tell jQuery NOT to serialize FormData
-                contentType: false,   // tell jQuery NOT to set Content-Type (browser sets multipart boundary)
+                data: payload,
                 success: function(response) {
                     if (response.success) {
                         alert(response.data.message || successMsg);
@@ -112,8 +110,18 @@
                     }
                 },
                 error: function(xhr, status, error) {
-                    console.error('AJAX Error:', status, error, xhr.responseText);
-                    alert('Network error: ' + error + '. Please check your connection and try again.');
+                    var details = '';
+                    if (xhr && xhr.responseJSON && xhr.responseJSON.data) {
+                        details = xhr.responseJSON.data;
+                    } else if (xhr && xhr.responseText) {
+                        details = xhr.responseText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+                    } else if (error) {
+                        details = error;
+                    } else if (status) {
+                        details = status;
+                    }
+                    console.error('AJAX Error:', status, error, xhr && xhr.responseText);
+                    alert('Submission failed' + (details ? ': ' + details : '.') + ' Please try again.');
                 },
                 complete: function() {
                     submitBtn.prop('disabled', false).html(originalText);

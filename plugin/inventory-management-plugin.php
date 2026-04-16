@@ -2169,6 +2169,11 @@ add_action('admin_enqueue_scripts', function() {
 });
 
 /* =========================
+   Load shared helpers
+   ========================= */
+require_once IMS_PLUGIN_PATH . 'includes/functions.php';
+
+/* =========================
    Load AJAX handler class
    ========================= */
 require_once IMS_PLUGIN_PATH . 'includes/class-ajax.php';
