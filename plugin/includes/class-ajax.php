@@ -190,6 +190,7 @@ class IMS_Ajax {
             
             $data = array(
                 'opening_packs'     => $opening_packs,
+                'added_packs'       => $added_packs,
                 'used_packs'        => $used_packs,
                 'closing_packs'     => $closing_packs,
                 'remarks'           => $remarks_text,
@@ -198,12 +199,21 @@ class IMS_Ajax {
             );
             
             if ($existing) {
-                $res = $wpdb->update($stock_table, $data, array('id' => $existing->id));
+                $res = $wpdb->update(
+                    $stock_table,
+                    $data,
+                    array('id' => $existing->id),
+                    array('%f', '%f', '%f', '%f', '%s', '%s', '%s'),
+                    array('%d')
+                );
             } else {
                 $data['product']      = $product;
-                $data['added_packs']  = $added_packs;
                 $data['date_created'] = $lagos_time;
-                $res = $wpdb->insert($stock_table, $data);
+                $res = $wpdb->insert(
+                    $stock_table,
+                    $data,
+                    array('%f', '%f', '%f', '%f', '%s', '%s', '%s', '%s', '%s')
+                );
             }
             
             if ($res !== false) $saved++;
@@ -214,17 +224,25 @@ class IMS_Ajax {
             wp_send_json_success(array(
                 'message'   => $label . '! ' . $saved . ' products saved.',
                 'count'     => $saved,
-                'timestamp' => $lagos_time
+                'timestamp' => $lagos_time,
+                'debug'     => array(
+                    'opening_count'  => count($opening_values),
+                    'used_count'     => count($used_values),
+                    'products_count' => count($products),
+                    'is_admin'       => $is_admin,
+                ),
             ));
         } else {
             $debug = array(
-                'opening_count'  => count($opening_values),
-                'used_count'     => count($used_values),
-                'products_count' => count($products),
-                'is_admin'       => $is_admin,
+                'opening_count'    => count($opening_values),
+                'used_count'       => count($used_values),
+                'products_count'   => count($products),
+                'is_admin'         => $is_admin,
                 'post_field_count' => count($_POST),
+                'post_keys'        => array_keys($_POST),
             );
-            wp_send_json_error('No stock data to save. Debug: ' . json_encode($debug));
+            error_log('[IMS] Stock AJAX save failed. Debug: ' . wp_json_encode($debug));
+            wp_send_json_error('No stock data to save. Debug: ' . wp_json_encode($debug));
         }
     }
     
@@ -348,11 +366,21 @@ class IMS_Ajax {
             );
             
             if ($existing) {
-                $res = $wpdb->update($chopped_table, $data, array('id' => $existing->id));
+                $res = $wpdb->update(
+                    $chopped_table,
+                    $data,
+                    array('id' => $existing->id),
+                    array('%f', '%f', '%f', '%f', '%f', '%s', '%s', '%s'),
+                    array('%d')
+                );
             } else {
                 $data['fruit']        = $fruit;
                 $data['date_created'] = $lagos_time;
-                $res = $wpdb->insert($chopped_table, $data);
+                $res = $wpdb->insert(
+                    $chopped_table,
+                    $data,
+                    array('%f', '%f', '%f', '%f', '%f', '%s', '%s', '%s', '%s', '%s')
+                );
             }
             
             if ($res !== false) {
@@ -370,18 +398,27 @@ class IMS_Ajax {
             wp_send_json_success(array(
                 'message'   => $label . '! ' . $saved . ' fruits saved.',
                 'count'     => $saved,
-                'timestamp' => $lagos_time
+                'timestamp' => $lagos_time,
+                'debug'     => array(
+                    'opening_count'  => count($opening_values),
+                    'prepared_count' => count($prepared_values),
+                    'packs_count'    => count($packs_values),
+                    'fruits_count'   => count($fruits),
+                    'is_admin'       => $is_admin,
+                ),
             ));
         } else {
             $debug = array(
-                'opening_count'  => count($opening_values),
-                'prepared_count' => count($prepared_values),
-                'packs_count'    => count($packs_values),
-                'fruits_count'   => count($fruits),
-                'is_admin'       => $is_admin,
+                'opening_count'    => count($opening_values),
+                'prepared_count'   => count($prepared_values),
+                'packs_count'      => count($packs_values),
+                'fruits_count'     => count($fruits),
+                'is_admin'         => $is_admin,
                 'post_field_count' => count($_POST),
+                'post_keys'        => array_keys($_POST),
             );
-            wp_send_json_error('No chopped data to save. Debug: ' . json_encode($debug));
+            error_log('[IMS] Chopped AJAX save failed. Debug: ' . wp_json_encode($debug));
+            wp_send_json_error('No chopped data to save. Debug: ' . wp_json_encode($debug));
         }
     }
     

@@ -104,7 +104,10 @@
                 success: function(response) {
                     if (response.success) {
                         alert(response.data.message || successMsg);
-                        window.location.reload();
+                        // Cache-busting reload to ensure fresh server-rendered values
+                        var url = window.location.href.replace(/[\?&]ims_ts=\d+/g, '');
+                        var sep = url.indexOf('?') > -1 ? '&' : '?';
+                        window.location.href = url + sep + 'ims_ts=' + Date.now();
                     } else {
                         alert('Error: ' + (response.data || 'Submission failed. Please try again.'));
                     }
