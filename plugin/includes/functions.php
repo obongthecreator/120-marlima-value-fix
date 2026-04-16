@@ -401,4 +401,24 @@ function ims_extract_post_arrays($field_names) {
 
     return $result;
 }
+
+/**
+ * Extract a POST array field using a canonical name with legacy fallbacks.
+ *
+ * @param string   $primary_name    Canonical field name expected by current handlers.
+ * @param string[] $fallback_names  Older field names still used by legacy forms.
+ * @return array
+ */
+function ims_extract_post_array_variants($primary_name, $fallback_names = array()) {
+    $field_names = array_values(array_unique(array_merge(array($primary_name), $fallback_names)));
+    $parsed = ims_extract_post_arrays($field_names);
+
+    foreach ($field_names as $field_name) {
+        if (!empty($parsed[$field_name]) && is_array($parsed[$field_name])) {
+            return $parsed[$field_name];
+        }
+    }
+
+    return array();
+}
 ?>

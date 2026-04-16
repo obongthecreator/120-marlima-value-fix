@@ -78,14 +78,26 @@
         },
 
         // Build a standard URL-encoded payload for WordPress AJAX.
-        // This keeps bracketed field names intact while avoiding multipart requests.
+        // This also normalizes legacy field names used by older form templates.
         buildAjaxPayload: function(form, action) {
-            var payload = form.serialize();
-            payload += (payload ? '&' : '') + $.param({
-                action: action,
-                nonce: ims_ajax.nonce
+            var fieldNameMap = {
+                opening: 'opening_packs',
+                used: 'used_packs',
+                prepared: 'prepared_whole',
+                packs: 'packs_gotten'
+            };
+            var fields = form.serializeArray().map(function(field) {
+                var match = field.name.match(/^([^\[]+)(\[.*\])$/);
+                if (match && fieldNameMap[match[1]]) {
+                    field.name = fieldNameMap[match[1]] + match[2];
+                }
+                return field;
             });
-            return payload;
+            fields.push(
+                { name: 'action', value: action },
+                { name: 'nonce', value: ims_ajax.nonce }
+            );
+            return $.param(fields);
         },
 
         // Generic AJAX submit using standard form encoding

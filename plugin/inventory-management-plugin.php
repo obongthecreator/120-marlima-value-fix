@@ -1686,9 +1686,8 @@ function ims_handle_stock_submission() {
     }
 
     global $wpdb;
-    $parsed = ims_extract_post_arrays(array('opening_packs', 'used_packs'));
-    $opening_values = $parsed['opening_packs'];
-    $used_values    = $parsed['used_packs'];
+    $opening_values = ims_extract_post_array_variants('opening_packs', array('opening'));
+    $used_values    = ims_extract_post_array_variants('used_packs', array('used'));
     $current_user   = wp_get_current_user();
     $lagos_time     = ims_get_lagos_time();
     $today          = date('Y-m-d', strtotime($lagos_time));
@@ -1930,10 +1929,9 @@ function ims_handle_chopped_submission() {
 
     global $wpdb;
 
-    $parsed = ims_extract_post_arrays(array('opening_whole', 'prepared_whole', 'packs_gotten'));
-    $opening_values  = $parsed['opening_whole'];
-    $prepared_values = $parsed['prepared_whole'];
-    $packs_values    = $parsed['packs_gotten'];
+    $opening_values  = ims_extract_post_array_variants('opening_whole', array('opening'));
+    $prepared_values = ims_extract_post_array_variants('prepared_whole', array('prepared'));
+    $packs_values    = ims_extract_post_array_variants('packs_gotten', array('packs'));
     
     $remarks_raw     = $_POST['remarks'] ?? '';
     // Support both per-fruit array and scalar remarks
