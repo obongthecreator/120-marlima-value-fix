@@ -1386,7 +1386,7 @@ add_shortcode('ims_stock_form', function($atts) {
                             <td style="padding:10px;">
                                 <input type="number" name="used_packs[<?php echo esc_attr($product); ?>]"
                                        class="used-packs"
-                                       value="<?php echo $is_staff ? '' : esc_attr($used_packs); ?>"
+                                       value="<?php echo esc_attr($used_packs); ?>"
                                        placeholder="0.00" step="0.01" min="0"
                                        inputmode="decimal" autocomplete="off">
                             </td>
@@ -1565,9 +1565,9 @@ add_shortcode('ims_chopped_form', function($atts) {
                             <td style="padding:10px;"><strong style="color:#FF0000;"><iconify-icon icon="solar:leaf-linear" style="font-size:1.2em;vertical-align:middle;"></iconify-icon> <?php echo esc_html($fruit); ?></strong></td>
                             <td style="padding:10px;"><input type="number" name="opening_whole[<?php echo esc_attr($fruit); ?>]" class="opening-whole" value="<?php echo esc_attr($opening_whole); ?>" step="0.01" min="0" <?php echo $is_admin ? '' : 'readonly'; ?> inputmode="decimal" autocomplete="off"></td>
                             <td style="padding:10px;"><input type="number" class="import-whole" value="<?php echo esc_attr($import_whole); ?>" step="0.01" min="0" readonly></td>
-                            <td style="padding:10px;"><input type="number" name="prepared_whole[<?php echo esc_attr($fruit); ?>]" class="prepared-whole" value="<?php echo $is_staff ? '' : esc_attr($prepared_whole); ?>" placeholder="0.00" step="0.01" min="0" inputmode="decimal" autocomplete="off"></td>
+                            <td style="padding:10px;"><input type="number" name="prepared_whole[<?php echo esc_attr($fruit); ?>]" class="prepared-whole" value="<?php echo esc_attr($prepared_whole); ?>" placeholder="0.00" step="0.01" min="0" inputmode="decimal" autocomplete="off"></td>
                             <td style="padding:10px;"><input type="number" class="closing-whole" value="<?php echo esc_attr($closing_whole); ?>" step="0.01" min="0" readonly></td>
-                            <td style="padding:10px;"><input type="number" name="packs_gotten[<?php echo esc_attr($fruit); ?>]" class="packs-gotten" value="<?php echo $is_staff ? '' : esc_attr($packs_gotten); ?>" placeholder="0.00" step="0.01" min="0" inputmode="decimal" autocomplete="off"></td>
+                            <td style="padding:10px;"><input type="number" name="packs_gotten[<?php echo esc_attr($fruit); ?>]" class="packs-gotten" value="<?php echo esc_attr($packs_gotten); ?>" placeholder="0.00" step="0.01" min="0" inputmode="decimal" autocomplete="off"></td>
                             <td style="padding:10px;"><textarea name="remarks[<?php echo esc_attr($fruit); ?>]" rows="2" placeholder="<?php echo $is_staff ? 'Add notes/remarks...' : 'Enter remarks...'; ?>"><?php echo esc_textarea($remarks); ?></textarea></td>
                         </tr>
                         <?php endforeach; ?>
