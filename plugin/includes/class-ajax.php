@@ -7,6 +7,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!function_exists('ims_extract_post_arrays')) {
+    require_once __DIR__ . '/functions.php';
+}
+
 class IMS_Ajax {
     
     public function __construct() {
