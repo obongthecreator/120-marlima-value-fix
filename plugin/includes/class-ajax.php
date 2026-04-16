@@ -132,8 +132,8 @@ class IMS_Ajax {
         $eps          = 1e-6;
         
         // Extract form arrays using robust helper with fallback
-        $opening_values = ims_extract_post_array_variants('opening_packs', array('opening'));
-        $used_values    = ims_extract_post_array_variants('used_packs', array('used'));
+        $opening_values = ims_extract_post_array_variants('opening_packs');
+        $used_values    = ims_extract_post_array_variants('used_packs');
         
         $remarks_raw  = isset($_POST['remarks']) ? $_POST['remarks'] : '';
         $remarks_text = is_string($remarks_raw) ? sanitize_textarea_field($remarks_raw) : '';
@@ -251,9 +251,9 @@ class IMS_Ajax {
         $eps           = 1e-6;
         
         // Extract form arrays using robust helper with fallback
-        $opening_values  = ims_extract_post_array_variants('opening_whole', array('opening'));
-        $prepared_values = ims_extract_post_array_variants('prepared_whole', array('prepared'));
-        $packs_values    = ims_extract_post_array_variants('packs_gotten', array('packs'));
+        $opening_values  = ims_extract_post_array_variants('opening_whole');
+        $prepared_values = ims_extract_post_array_variants('prepared_whole');
+        $packs_values    = ims_extract_post_array_variants('packs_gotten');
         
         $remarks_raw = isset($_POST['remarks']) ? $_POST['remarks'] : '';
         if (is_array($remarks_raw)) {

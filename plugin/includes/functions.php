@@ -403,14 +403,33 @@ function ims_extract_post_arrays($field_names) {
 }
 
 /**
+ * Get canonical POST field names with any supported legacy aliases.
+ *
+ * @param string $primary_name
+ * @return string[]
+ */
+function ims_get_post_array_field_variants($primary_name) {
+    $legacy_map = array(
+        'opening_packs'  => array('opening'),
+        'used_packs'     => array('used'),
+        'opening_whole'  => array('opening'),
+        'prepared_whole' => array('prepared'),
+        'packs_gotten'   => array('packs'),
+    );
+
+    $fallback_names = isset($legacy_map[$primary_name]) ? $legacy_map[$primary_name] : array();
+
+    return array_values(array_unique(array_merge(array($primary_name), $fallback_names)));
+}
+
+/**
  * Extract a POST array field using a canonical name with legacy fallbacks.
  *
- * @param string   $primary_name    Canonical field name expected by current handlers.
- * @param string[] $fallback_names  Older field names still used by legacy forms.
+ * @param string $primary_name Canonical field name expected by current handlers.
  * @return array
  */
-function ims_extract_post_array_variants($primary_name, $fallback_names = array()) {
-    $field_names = array_values(array_unique(array_merge(array($primary_name), $fallback_names)));
+function ims_extract_post_array_variants($primary_name) {
+    $field_names = ims_get_post_array_field_variants($primary_name);
     $parsed = ims_extract_post_arrays($field_names);
 
     foreach ($field_names as $field_name) {
