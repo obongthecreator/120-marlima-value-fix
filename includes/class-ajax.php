@@ -121,6 +121,8 @@ class IMS_Ajax {
         // The stock form sends opening[product] and used[product] arrays
         $opening_values = isset($_POST['opening']) && is_array($_POST['opening']) ? $_POST['opening'] : array();
         $used_values    = isset($_POST['used']) && is_array($_POST['used']) ? $_POST['used'] : array();
+        $remarks_raw    = isset($_POST['remarks']) ? sanitize_textarea_field($_POST['remarks']) : '';
+        $final_remarks  = function_exists('ims_normalize_remarks') ? ims_normalize_remarks($remarks_raw) : $remarks_raw;
         
         // Process: admin → all products; staff → only submitted ones
         $products = $is_admin ? ims_get_products('all') : array_keys($used_values);
@@ -166,7 +168,8 @@ class IMS_Ajax {
                 'used_packs'        => $used_packs,
                 'closing_packs'     => $closing_packs,
                 'staff_name'        => $current_user->display_name,
-                'timestamp_created' => $lagos_time
+                'timestamp_created' => $lagos_time,
+                'remarks'           => $final_remarks
             );
             
             if ($existing) {

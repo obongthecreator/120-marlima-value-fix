@@ -1401,6 +1401,13 @@ add_shortcode('ims_stock_form', function($atts) {
                 </table>
             </div>
 
+            <div style="margin:20px 0;">
+                <label for="ims-stock-remarks" style="display:block;font-weight:bold;margin-bottom:6px;color:#333;">
+                    <iconify-icon icon="solar:document-text-linear" style="font-size:1.2em;vertical-align:middle;"></iconify-icon> Remarks
+                </label>
+                <textarea id="ims-stock-remarks" name="remarks" rows="3" placeholder="Enter any remarks or notes..." style="width:100%;padding:10px;border:2px solid #ddd;border-radius:8px;font-size:14px;resize:vertical;"></textarea>
+            </div>
+
             <div style="text-align:center;padding:20px 0;">
                 <button type="submit" style="background:linear-gradient(135deg,#FF0000 0%,#cc0000 100%);color:white;padding:16px 28px;border:none;border-radius:8px;font-weight:bold;">
                     <iconify-icon icon="solar:chart-2-linear" style="font-size:1.2em;vertical-align:middle;"></iconify-icon> <?php echo $is_admin ? 'Save Stock Data (ADMIN)' : 'Submit Used Packs (STAFF)'; ?>
@@ -1688,6 +1695,8 @@ function ims_handle_stock_submission() {
     global $wpdb;
     $opening_values = $_POST['opening'] ?? array();
     $used_values    = $_POST['used'] ?? array();
+    $remarks_raw    = isset($_POST['remarks']) ? sanitize_textarea_field($_POST['remarks']) : '';
+    $final_remarks  = function_exists('ims_normalize_remarks') ? ims_normalize_remarks($remarks_raw) : $remarks_raw;
     $current_user   = wp_get_current_user();
     $lagos_time     = ims_get_lagos_time();
     $today          = date('Y-m-d', strtotime($lagos_time));
@@ -1750,15 +1759,16 @@ function ims_handle_stock_submission() {
             'used_packs'        => $final_used,
             'closing_packs'     => $final_close,
             'staff_name'        => $current_user->display_name,
-            'timestamp_created' => $lagos_time
+            'timestamp_created' => $lagos_time,
+            'remarks'           => $final_remarks
         );
 
         if ($existing) {
-            $res = $wpdb->update($stock_table, $data, array('id' => $existing->id), array('%f','%f','%f','%f','%s','%s'), array('%d'));
+            $res = $wpdb->update($stock_table, $data, array('id' => $existing->id), array('%f','%f','%f','%f','%s','%s','%s'), array('%d'));
         } else {
             $data['product']      = $product;
             $data['date_created'] = $lagos_time;
-            $res = $wpdb->insert($stock_table, $data, array('%s','%f','%f','%f','%f','%s','%s','%s'));
+            $res = $wpdb->insert($stock_table, $data, array('%s','%f','%f','%f','%f','%s','%s','%s','%s'));
         }
 
         if ($res !== false) $saved++;
